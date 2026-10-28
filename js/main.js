@@ -68,13 +68,35 @@ stageReady.then(() => {
 });
 
 // ---------- the needle drop ----------
+// iOS mutes Web Audio on the silent switch unless a media element is playing, and some browsers
+// refuse to start an AudioContext at all. So on the tap: ask for a playback session, keep a silent
+// loop running, and prime a plain <audio> copy of the anthem to fall back on.
+const SILENCE = 'data:audio/wav;base64,UklGRvQHAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YdAHAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+let backup = null;
+function unlockAudio() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+  const keep = new Audio(SILENCE); keep.loop = true; keep.play().catch(() => {});
+  backup = new Audio('assets/anthem.mp3'); backup.loop = true; backup.preload = 'auto';
+  backup.muted = true;
+  backup.play().then(() => { backup.pause(); backup.muted = false; }).catch(() => {});
+}
+// if Web Audio hasn't come alive by the time the needle drops, play the plain copy on the virtual clock
+function ensureSound() {
+  if (deck.silent) return;
+  const live = deck.ctx && deck.ctx.state === 'running' && !deck.virtual;
+  if (live || !backup) return;
+  deck.virtual = true; deck.silent = true;
+  backup.currentTime = deck.time();
+  backup.play().catch(() => {});
+  deck.on('state', (on) => (on ? backup.play().catch(() => {}) : backup.pause()));
+}
 let started = false;
 let shot = 'hero';
 function drop(sound) {
   if (started) return;
   started = true;
   deck.silent = !sound;
-  if (sound && deck.ctx && deck.ctx.state !== 'running') deck.ctx.resume();   // must happen inside the gesture
+  if (sound) { unlockAudio(); if (deck.ctx && deck.ctx.state !== 'running') deck.ctx.resume(); }   // must happen inside the gesture
   const sl = $('#sleeve');
   const tl = gsap.timeline();
   tl.to('.disc-out', { xPercent: 70, rotation: 400, duration: 1.1, ease: 'power2.inOut' }, 0)
@@ -93,6 +115,7 @@ function drop(sound) {
   stage?.shot('hero');
   // the arm swings over, then the needle drops and the platter comes up to speed
   gsap.delayedCall(1.35, () => deck.play(0.45));
+  if (sound) gsap.delayedCall(2.4, ensureSound);
   gsap.delayedCall(2.6, () => bots?.start());
   gsap.delayedCall(1.6, () => setShot(shot, true));
 }
@@ -305,6 +328,9 @@ scratcher(deckEl, () => { const r = deckEl.getBoundingClientRect(); return { x: 
 scratcher(window, () => stage.recordScreen(), (e) =>
   e.pointerType === 'mouse' && e.button === 0 && stage && started && !e.target.closest('a,button,video,input,dialog,.hud,#player') && stage.hitRecord(e.clientX, e.clientY));
 
+// any later tap or key wakes a context the browser left asleep
+for (const ev of ['pointerup', 'keydown', 'touchend']) addEventListener(ev, () => { if (started && !deck.silent && deck.ctx?.state === 'suspended') deck.ctx.resume(); }, { passive: true });
+
 // the crew loses it when you go near the X button
 for (const x of $$('.xbtn')) x.addEventListener('pointerenter', () => bots?.cheer(2.4));
 
@@ -323,4 +349,4 @@ gsap.ticker.add((time, deltaMs) => {
 });
 
 // a handle for poking at it from the console
-window.AD = { deck, lenis, bots, get stage() { return stage; }, get poster() { return poster; }, get bout() { return bout; }, setTwin, drop };
+window.AD = { deck, lenis, bots, get backup() { return backup; }, get stage() { return stage; }, get poster() { return poster; }, get bout() { return bout; }, setTwin, drop };
