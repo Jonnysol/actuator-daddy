@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Actuator Daddy</title>
+<meta name="description" content="The after-hours twin of Verros Robotics. Same Artus actuators, 230 N·m at peak, no chill.">
+<meta name="theme-color" content="#0B1117">
+<meta property="og:title" content="Actuator Daddy">
+<meta property="og:description" content="The after-hours twin of Verros Robotics. Take that load.">
+<meta property="og:image" content="https://actuatordaddy.com/og.png">
+<meta property="og:url" content="https://actuatordaddy.com/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="fonts/BigShoulders.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/site.css">
+<script type="importmap">{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/",
+  "gsap":"https://cdn.jsdelivr.net/npm/gsap@3.15.0/+esm",
+  "gsap/ScrollTrigger":"https://cdn.jsdelivr.net/npm/gsap@3.15.0/ScrollTrigger.js/+esm",
+  "lenis":"https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.mjs"
+}}</script>
+<script type="module" src="js/main.js"></script>
+</head>
+<body class="is-loading">
+<canvas id="stage" aria-hidden="true"></canvas>
+<canvas id="bots" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- the record sleeve: first thing you see, and the needle drop that starts the anthem -->
+<div id="sleeve" role="dialog" aria-modal="true" aria-labelledby="sleeve-title">
+  <div class="sleeve-stack">
+    <div class="disc-out" aria-hidden="true"><canvas class="disc-label"></canvas></div>
+    <figure class="sleeve-art">
+      <img class="sleeve-wordmark" src="brand/wordmark.svg" alt="">
+      <img class="sleeve-daddy" src="assets/daddy-ascii.png" alt="Tarun as a black-and-white ASCII paper cutout. His hair is set in the words Actuator Daddy, his sweater in Take That Load.">
+      <img class="sleeve-bigd" src="brand/bigd-wink-orange.svg" alt="">
+      <span class="sleeve-advisory" aria-hidden="true"><b>Torque advisory</b>explicit specs</span>
+      <span class="sleeve-side" aria-hidden="true">Side A<br>45 rpm</span>
+    </figure>
+  </div>
+  <div class="sleeve-copy">
+    <h1 id="sleeve-title" class="visually-hidden">Actuator Daddy</h1>
+    <p class="voice">The after-hours twin of Verros Robotics.</p>
+    <button id="drop" class="btn btn-hot" type="button">Drop the needle</button>
+    <p class="sleeve-hint">Sound on. Or press any key. <button id="silent" class="link" type="button">Enter without sound</button></p>
+  </div>
+</div>
+
+<header class="hud">
+  <a class="hud-brand" href="#top" aria-label="Actuator Daddy, back to top"><img src="brand/bigd-small-orange.svg" alt=""><span>Actuator Daddy</span></a>
+  <div class="hud-right">
+    <a class="xbtn" href="https://x.com/actuatordaddy" target="_blank" rel="noopener" aria-label="Follow Actuator Daddy on X (opens in a new tab)">
+      <svg class="xbtn-puck" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="19.5"/>
+        <g class="bolts"><circle cx="34.41" cy="25.97" r="1.5"/><circle cx="25.97" cy="34.41" r="1.5"/><circle cx="14.03" cy="34.41" r="1.5"/><circle cx="5.59" cy="25.97" r="1.5"/><circle cx="5.59" cy="14.03" r="1.5"/><circle cx="14.03" cy="5.59" r="1.5"/><circle cx="25.97" cy="5.59" r="1.5"/><circle cx="34.41" cy="14.03" r="1.5"/></g>
+        <path class="x" transform="translate(11.5 11.5) scale(.71)" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+      <span class="xbtn-say" aria-hidden="true"><span>@actuatordaddy</span><span>He posts torque</span></span>
+    </a>
+    <div class="twin" role="group" aria-label="Which twin">
+      <button type="button" data-twin="day" aria-pressed="false">Verros</button>
+      <button type="button" data-twin="night" aria-pressed="true">Daddy</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <section id="hero" class="shot" data-shot="hero">
+    <div class="hero-copy">
+      <h2 class="visually-hidden">Actuator Daddy</h2>
+      <img class="hero-wordmark" src="brand/wordmark.svg" alt="Actuator Daddy">
+      <p class="day-title" aria-hidden="true">Verros Robotics</p>
+      <p class="voice hero-line" data-day="Next-gen humanoid actuators.">The after-hours twin of Verros Robotics.</p>
+      <p class="hero-sub" data-day="Built in San Francisco.">Same Artus actuators. 230 N·m at peak. No chill.</p>
+    </div>
+    <p class="subtitle" aria-live="off"><span id="lyric"></span></p>
+  </section>
+
+  <section id="daddy" class="shot" data-shot="daddy">
+    <div class="daddy-poster">
+      <canvas id="poster" role="img" aria-label="Tarun as an ASCII paper cutout. His hair is set in the words Actuator Daddy, his sweater is knit from Take That Load."></canvas>
+      <img class="disguise d-glasses" src="brand/disguise-glasses.svg" alt="">
+      <img class="disguise d-stache" src="brand/disguise-stache.svg" alt="">
+    </div>
+    <div class="daddy-copy">
+      <h2 data-day="Meet the founder.">Meet Daddy.</h2>
+      <p class="voice">By day he's Tarun Malarvasan: founder of Verros Robotics, three-time ISEF grand award winner, builder of humanoid actuators in San Francisco.</p>
+      <p class="voice">After hours, he answers to something else.</p>
+      <button id="disguise-btn" class="btn" type="button" aria-pressed="false">Put the disguise on</button>
+      <p class="fine">The song puts it on him every time it says his name.</p>
+    </div>
+  </section>
+
+  <section id="twin" class="shot" data-shot="twin">
+    <div class="twin-copy">
+      <h2>Verros by day.</h2>
+      <p class="voice">Calm. Grey. Foggy. Polite. Motor, gearbox and driver in one unit, and sentences like “full specifications publish with preorders.”</p>
+      <p>Flip the switch up top to see what Daddy looks like at the office.</p>
+    </div>
+    <figure class="dayshift">
+      <video id="dayshift" src="assets/day-shift.mp4" poster="assets/day-shift-poster.jpg" controls playsinline preload="none"></video>
+      <figcaption>The day job, in 77 seconds. Playing it pauses the anthem.</figcaption>
+    </figure>
+  </section>
+
+  <section id="inside" class="shot shot-tall" data-shot="inside">
+    <div class="sticky">
+      <div class="inside-copy">
+        <h2>Stripped for the weigh-in.</h2>
+        <p class="voice">Scroll to take him apart. Everything here follows the Verros spec sheet except the gearbox, which is a secret, so ours is an illustration.</p>
+      </div>
+      <ol class="callouts" aria-label="Parts of an Artus actuator">
+        <li data-part="flange"><b>Output flange</b>Where the load goes.</li>
+        <li data-part="front"><b>Front plate</b>16 bolts. Same as the logo.</li>
+        <li data-part="gearbox"><b>Gearbox</b>Zero backlash. No slop, no talking back. The real one is classified.</li>
+        <li data-part="rotor"><b>Rotor</b>A ring of magnets that goes round when told.</li>
+        <li data-part="stator"><b>Motor</b>Driven further than a motor this size has gone before. That glow is copper working.</li>
+        <li data-part="pcb"><b>Driver</b>His own, built into the housing. Power and comms in, motion out.</li>
+        <li data-part="sleeve"><b>Housing</b>Finned, anodized, built by hand in San Francisco.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="tape" class="shot" data-shot="tape">
+    <h2>Tale of the tape.</h2>
+    <div class="tape-stage" aria-hidden="true"></div>
+    <div class="tape-wrap">
+      <table class="tape">
+        <caption>Three sizes, one family. Specs from verrosrobotics.com; sizes are estimates until preorders.</caption>
+        <thead><tr><th scope="col"><span class="visually-hidden">Spec</span></th>
+          <th scope="col" data-size="0"><span class="nick">Little Daddy</span>Artus I</th>
+          <th scope="col" data-size="1"><span class="nick">Daddy</span>Artus II</th>
+          <th scope="col" data-size="2"><span class="nick">Big Daddy</span>Artus III</th></tr></thead>
+        <tbody>
+          <tr class="hot"><th scope="row">Peak torque</th><td data-size="0"><i style="--v:.222"></i>51 <small>N·m</small></td><td data-size="1"><i style="--v:.491"></i>113 <small>N·m</small></td><td data-size="2"><i style="--v:1"></i>230 <small>N·m</small></td></tr>
+          <tr><th scope="row">Rated torque</th><td data-size="0"><i style="--v:.07"></i>16 <small>N·m</small></td><td data-size="1"><i style="--v:.196"></i>45 <small>N·m</small></td><td data-size="2"><i style="--v:.343"></i>79 <small>N·m</small></td></tr>
+          <tr><th scope="row">Rated speed</th><td data-size="0">158 <small>rpm</small></td><td data-size="1">122 <small>rpm</small></td><td data-size="2">89 <small>rpm</small></td></tr>
+          <tr><th scope="row">No-load speed</th><td data-size="0">224 <small>rpm</small></td><td data-size="1">163 <small>rpm</small></td><td data-size="2">120 <small>rpm</small></td></tr>
+          <tr><th scope="row">Size</th><td data-size="0">Ø80 × 60 <small>mm</small></td><td data-size="1">Ø95 × 60 <small>mm</small></td><td data-size="2">Ø125 × 80 <small>mm</small></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="voice tape-note">Point at a fighter and he spins up at his real no-load speed, slowed down so you can see it.</p>
+  </section>
+
+  <section id="bout" class="shot" data-shot="bout">
+    <div class="bout-copy">
+      <h2>Take that load.</h2>
+      <p class="voice">Peak torque is a sprint. Copper heats with the square of the current, so Big Daddy holds 230 N·m only until his windings hit their limit. Hold the button, push him, and let go before 155 °C.</p>
+    </div>
+    <div class="bout-rig">
+      <dl class="gauges">
+        <div><dt>Torque</dt><dd><span id="g-torque">0</span> <small>N·m</small></dd></div>
+        <div><dt>Windings</dt><dd><span id="g-temp">40</span> <small>°C</small></dd></div>
+        <div><dt>At peak</dt><dd><span id="g-time">0.00</span> <small>s</small></dd></div>
+      </dl>
+      <button id="hold" class="hold" type="button" aria-describedby="bout-help">
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="hold-track" cx="60" cy="60" r="54"/><circle class="hold-torque" cx="60" cy="60" r="54"/><circle class="hold-heat" cx="60" cy="60" r="47"/></svg>
+        <span id="hold-label">Hold to load</span>
+      </button>
+      <p id="bout-help" class="fine">Press and hold, or hold the space bar.</p>
+      <p id="verdict" class="verdict" aria-live="polite"></p>
+      <button id="card-btn" class="btn btn-hot" type="button" hidden>Make my load card</button>
+    </div>
+    <p class="fine bout-fine">A simulation, for fun: I²R heating, a class F insulation limit of 155 °C, and Artus III peak and rated torque from Verros. Verros hasn't published thermal data.</p>
+  </section>
+
+  <section id="joints" class="shot" data-shot="joints">
+    <h2>Every joint deserves a daddy.</h2>
+    <p class="voice">Hips, knees, shoulders, elbows. One actuator family for the robots taking on real work.</p>
+    <ul class="apps">
+      <li><b>Humanoids</b>Hips, knees, shoulders and elbows.</li>
+      <li><b>Legged robots</b>Quadrupeds and anything else that walks.</li>
+      <li><b>Robot arms</b>Precise, repeatable, unbothered.</li>
+      <li><b>Research platforms</b>Already in labs at MIT, Penn, Carnegie Mellon, Stanford, Berkeley and Illinois.</li>
+    </ul>
+    <p class="fine bots-hint">The little guys running along the bottom of your screen are built the same way. Get close and they'll come for you.</p>
+  </section>
+
+  <section id="credits" class="shot" data-shot="credits">
+    <div class="roll">
+      <img class="roll-mark" src="brand/lockup.svg" alt="Actuator Daddy">
+      <dl>
+        <div><dt>Starring</dt><dd>Artus I<br>Artus II<br>Artus III</dd></div>
+        <div><dt>Daddy</dt><dd>Tarun Malarvasan</dd></div>
+        <div><dt>Day job</dt><dd>Verros Robotics, San Francisco</dd></div>
+        <div><dt>In labs at</dt><dd>MIT<br>Penn<br>Carnegie Mellon<br>Stanford<br>UC Berkeley<br>Illinois</dd></div>
+        <div><dt>Backed by</dt><dd>Founders, Inc.<br>Onshape<br>Happy Valley LaunchBox<br>The CFO of Amazon</dd></div>
+        <div><dt>Anthem</dt><dd>“Actuator Daddy” by jonnyremix</dd></div>
+        <div><dt>Day-shift documentary</dt><dd>The Verros film</dd></div>
+      </dl>
+      <p class="voice roll-end">No gearboxes were explained in the making of this site.</p>
+    </div>
+    <div class="cta">
+      <h2>Preorders open soon.</h2>
+      <a class="btn btn-hot" href="https://verrosrobotics.com/#preorder" rel="noopener">Join the Verros preorder list</a>
+      <a class="xbtn xbtn-big" href="https://x.com/actuatordaddy" target="_blank" rel="noopener" aria-label="Follow Actuator Daddy on X (opens in a new tab)">
+        <svg class="xbtn-puck" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="19.5"/>
+          <g class="bolts"><circle cx="34.41" cy="25.97" r="1.5"/><circle cx="25.97" cy="34.41" r="1.5"/><circle cx="14.03" cy="34.41" r="1.5"/><circle cx="5.59" cy="25.97" r="1.5"/><circle cx="5.59" cy="14.03" r="1.5"/><circle cx="14.03" cy="5.59" r="1.5"/><circle cx="25.97" cy="5.59" r="1.5"/><circle cx="34.41" cy="14.03" r="1.5"/></g>
+          <path class="x" transform="translate(11.5 11.5) scale(.71)" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+        <span class="xbtn-say" aria-hidden="true"><span>Follow Daddy on X</span><span>Daily torque, no chill</span></span>
+      </a>
+      <a class="link" href="brand.html">Brand kit</a>
+    </div>
+    <footer class="foot">
+      <p>actuatordaddy.com is the after-hours twin of Verros Robotics.<br>Real specs and real orders live at <a href="https://verrosrobotics.com" rel="noopener">verrosrobotics.com</a>.</p>
+    </footer>
+  </section>
+</main>
+
+<!-- the record player that follows you down the page -->
+<aside id="player" aria-label="Anthem player" hidden>
+  <div class="deck" id="deck" title="Drag to scratch">
+    <canvas class="disc-label"></canvas>
+  </div>
+  <div class="player-meta">
+    <b>Actuator Daddy</b>
+    <span>jonnyremix</span>
+  </div>
+  <button id="playpause" class="pp" type="button" aria-label="Stop the record"><span></span></button>
+</aside>
+
+<div id="callout-layer" aria-hidden="true"></div>
+
+<dialog id="card-dialog" aria-labelledby="card-title">
+  <h2 id="card-title">Your load card</h2>
+  <img id="card-img" alt="">
+  <div class="card-actions">
+    <button id="card-share" class="btn btn-hot" type="button">Share</button>
+    <a id="card-download" class="btn" download="actuator-daddy-load-card.png">Download</a>
+    <button id="card-close" class="link" type="button">Close</button>
+  </div>
+</dialog>
+</body>
+</html>

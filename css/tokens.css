@@ -1,0 +1,24 @@
+/* Actuator Daddy tokens. Shared by the site and the brand book. */
+@font-face{font-family:"Big Shoulders";src:url(../fonts/BigShoulders.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Instrument Serif";src:url(../fonts/InstrumentSerif-Regular.woff2) format("woff2");font-display:swap}
+@font-face{font-family:"Instrument Serif";src:url(../fonts/InstrumentSerif-Italic.woff2) format("woff2");font-style:italic;font-display:swap}
+@font-face{font-family:"JetBrains Mono";src:url(../fonts/JetBrainsMono.woff2) format("woff2");font-weight:100 800;font-display:swap}
+
+:root{
+  /* night: the persona */
+  --night:#0B1117;      /* Verros steel sunk into the bay at 3 AM */
+  --steel:#2B3F57;      /* Verros' own accent, kept as the shadow tone */
+  --fog:#A4ADB9;        /* Verros' grey, used for secondary text */
+  --paper:#F1F0EC;      /* photocopy paper: the ASCII cutout, the marks */
+  --orange:#D9381E;     /* bridge orange: energy, Big D, the one loud colour */
+  --molten:#FF7A1A;     /* heat only (3D, load test) */
+  --white-hot:#FFE3B3;  /* heat only, at the thermal limit */
+  /* day: the twin (Verros' own palette) */
+  --day-bg:#E6E8EB;
+  --day-ink:#424C58;
+  --day-primary:#1F2D3D;
+
+  --display:"Big Shoulders",Impact,"Arial Narrow",sans-serif;
+  --voice:"Instrument Serif",Georgia,serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
