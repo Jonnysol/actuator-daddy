@@ -1,4 +1,14 @@
 # Not for indexing, not for scraping, not for training. Nothing.
+# The one exception: the bots that draw link previews when someone shares the URL.
+User-agent: Twitterbot
+User-agent: facebookexternalhit
+User-agent: Facebot
+User-agent: WhatsApp
+User-agent: Slackbot-LinkExpanding
+User-agent: Discordbot
+User-agent: TelegramBot
+Allow: /
+
 User-agent: *
 Disallow: /
 
