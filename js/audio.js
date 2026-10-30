@@ -28,9 +28,10 @@ class Turntable extends AudioWorkletProcessor {
       // groove velocity sets the level, so a stopping record fades the way vinyl does
       const g = Math.min(1, Math.abs(this.rate) * 1.6);
       let c = 0;
-      if (this.crackle > 0) {
-        if (Math.random() < 0.00022) c = (Math.random() - 0.5) * 0.32 * this.crackle;
-        c += (Math.random() - 0.5) * 0.0028 * this.crackle * Math.min(1, Math.abs(this.rate) + 0.15);
+      // the groove only crackles while it moves under the needle: a stopped record is silent
+      if (this.crackle > 0 && g > 0.02) {
+        if (Math.random() < 0.00022) c = (Math.random() - 0.5) * 0.32 * this.crackle * g;
+        c += (Math.random() - 0.5) * 0.0028 * this.crackle * g;
       }
       L[i] = (a[i0] + (a[i1] - a[i0]) * f) * g + c;
       if (R !== L) R[i] = (b[i0] + (b[i1] - b[i0]) * f) * g + c;
@@ -78,6 +79,9 @@ export class Turntable {
     this.pos = 0; this.rate = 0; this.stamp = performance.now();
     this.target = 0; this.duration = 64.8;
     this.playing = false; this.virtual = true; this.silent = false; this.scratching = false;
+    // exactly one engine ever makes sound: 'worklet' (the turntable) or, only if Web Audio
+    // can't load at all, 'element' (a plain <audio>). Until one is ready a virtual clock keeps time.
+    this.engine = 'virtual'; this.el = null; this.keep = null;
     this.level = 0; this.bass = 0; this.pulse = 0;
     this.line = -1; this.inBreak = false; this.beatN = null;
     this.handlers = {};
@@ -90,7 +94,7 @@ export class Turntable {
     if (this.ready) return this.ready;
     this.ready = (async () => {
       const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) throw new Error('no Web Audio');
+      if (!Ctx || !('audioWorklet' in Ctx.prototype)) throw new Error('no AudioWorklet');
       this.ctx = new Ctx({ latencyHint: 'interactive' });
       const url = URL.createObjectURL(new Blob([WORKLET], { type: 'application/javascript' }));
       const [, data] = await Promise.all([
@@ -114,21 +118,55 @@ export class Turntable {
       this.node.connect(this.analyser).connect(this.out).connect(this.ctx.destination);
       this.freq = new Uint8Array(this.analyser.frequencyBinCount);
       if (!this.silent) this.goLive();
-    })();
+    })().catch(() => this.useElement());
     return this.ready;
+  }
+
+  // the last resort, and only when the turntable could not load: never both at once
+  useElement() {
+    if (this.engine === 'worklet' || this.el) return;
+    this.engine = 'element';
+    this.el = new Audio(this.url);
+    this.el.loop = true; this.el.preload = 'auto';
+    this.kick();
+  }
+
+  // call from every tap and key: starts or resumes whichever engine should be sounding, never a second one
+  kick() {
+    if (this.silent || !this.playing) return;
+    if (this.engine === 'worklet' && this.ctx && this.ctx.state !== 'running') this.ctx.resume();
+    if (this.engine === 'element' && this.el.paused && !this.scratching) {
+      this.el.currentTime = this.time();
+      this.el.play().catch(() => {});
+    }
+    if (this.keep && this.keep.paused) this.keep.play().catch(() => {});
+  }
+
+  // inside the first tap: ask iOS for a playback session so the silent switch doesn't mute the song.
+  // Older iOS has no audioSession; there a looping silent clip does the same job while the record plays.
+  unlock(silence) {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+    if (!this.keep && !navigator.audioSession && /iP(hone|ad|od)|Macintosh.*Mobile/.test(navigator.userAgent) && silence) {
+      this.keep = new Audio(silence); this.keep.loop = true;
+      this.keep.play().catch(() => {});
+    }
+    // iOS only lets a media element play later if it was started inside a tap; play+pause does that silently
+    if (this.el && this.el.paused) { this.el.play().catch(() => {}); if (!this.playing) this.el.pause(); }
+    if (this.ctx && this.ctx.state !== 'running') this.ctx.resume();
   }
 
   // hand the record from the virtual clock to the real audio, at the same position and speed
   goLive() {
-    if (!this.node) return;
+    if (!this.node || this.engine === 'element') return;
     this.node.port.postMessage({ seek: this.position(), rate: this.rate });
-    this.virtual = false;
+    this.virtual = false; this.engine = 'worklet';
     this.send(this.target, this.tau || 0.3, this.playing ? 1 : undefined);
   }
   unmute() {
     this.silent = false;
-    if (this.ctx && this.ctx.state !== 'running') this.ctx.resume();
     if (this.node && this.virtual) this.goLive();
+    this.kick();
+    this.emit('state', this.playing);
   }
 
   get autoplayAllowed() { return !!this.ctx && this.ctx.state === 'running'; }
@@ -143,21 +181,23 @@ export class Turntable {
 
   play(spinup = 0.9) {
     this.playing = true;
-    if (!this.silent && this.ctx && this.ctx.state !== 'running') this.ctx.resume();
     this.send(1, spinup / 3, 1);
+    this.kick();
     this.emit('state', true);
   }
   stop(brake = 1.3) {
     this.playing = false;
     this.send(0, brake / 3);
+    if (this.el) this.el.pause();
+    if (this.keep) setTimeout(() => { if (!this.playing) this.keep.pause(); }, brake * 1000);
     this.emit('state', false);
   }
   toggle() { this.playing ? this.stop() : this.play(); }
 
   // scratching: the hand owns the record until it lets go, then the motor takes it back up to speed
-  grab() { this.scratching = true; this.send(0, 0.03); }
+  grab() { this.scratching = true; this.send(0, 0.03); if (this.el) this.el.pause(); }
   drag(rate) { if (this.scratching) this.send(Math.max(-4, Math.min(4, rate)), 0.02); }
-  release() { this.scratching = false; this.send(this.playing ? 1 : 0, 0.22); }
+  release() { this.scratching = false; this.send(this.playing ? 1 : 0, 0.22); this.kick(); }
 
   // unwrapped playback position in seconds (keeps counting across loops)
   position() {
@@ -177,6 +217,10 @@ export class Turntable {
       this.rate += (this.target - this.rate) * (1 - Math.exp(-dt / tau));
       this.pos += this.rate * dt; this.stamp = performance.now();
       this.level = 0; this.bass = 0;
+      if (this.el && !this.el.paused) {
+        const d = this.el.currentTime - this.time();
+        if (Math.abs(d) > 0.25 && Math.abs(d) < this.duration / 2) this.pos += d;
+      }
     } else {
       this.analyser.getByteFrequencyData(this.freq);
       let b = 0, l = 0;

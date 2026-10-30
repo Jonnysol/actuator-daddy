@@ -9,9 +9,8 @@ Builds everything the brand book links to, from the identity files in brand/ (ne
   apple-touch-icon.png        180x180, Big D small cut, paper on orange, opaque
   brand/stickers.svg / .png   die-cut sticker sheet, 2400 px wide
   brand/tee.svg               front / back tee mock
-  og.png                      1200x630, rendered from og.html with Playwright (needs the dev server on :7760)
 
-Run:  uv run tools/make_brand_assets.py [--no-og]
+Run:  uv run tools/make_brand_assets.py
 All text is converted to outlines so the SVGs render anywhere (rsvg, browsers, cutters) without the fonts.
 """
 import math, os, re, subprocess, sys, shutil
@@ -255,22 +254,10 @@ def tee():
     rsvg(A("brand/tee.svg"), A("brand/png/tee-1800.png"), w=1800)
 
 
-# ---------- 4. og image ----------
-def og():
-    print("og")
-    scratch = os.environ.get("TMPDIR", "/tmp")
-    r = subprocess.run(["npx", "--no-install", "playwright", "screenshot", "--channel=chrome", "--viewport-size=1200,630",
-                        "--wait-for-timeout=1200", "http://127.0.0.1:7760/og.html", A("og.png")], cwd=scratch)
-    if r.returncode:
-        print("  og.png failed (is the dev server on :7760?)")
-    else:
-        print("  wrote og.png")
 
 
 if __name__ == "__main__":
     exports()
     stickers()
     tee()
-    if "--no-og" not in sys.argv:
-        og()
     print("brand assets ok")
